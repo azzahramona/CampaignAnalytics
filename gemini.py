@@ -218,7 +218,6 @@ elif view == "Weekly Update":
         st.dataframe(styled_df, use_container_width=True)
 elif view == "Pacing Monitoring":
     st.title("📊 Pacing Monitoring View")
-
     import pandas as pd
 
     pacing_data = pd.DataFrame({
@@ -233,8 +232,8 @@ elif view == "Pacing Monitoring":
             "2025-10-25", "2025-10-30"
         ]),
         "month": [
-            "Jul", "Aug", "Jul", "Jul", "Aug", 
-            "Aug", "Aug", "Aug", "Aug", "Aug", 
+            "Jul", "Jul", "Jul", "Jul", "Jul", 
+            "Jul", "Aug", "Aug", "Aug", "Aug", 
             "Aug", "Aug"
         ],
         "campaign": [
@@ -273,46 +272,47 @@ elif view == "Pacing Monitoring":
             500_000, 3_500_000, 2_000_000, 4_000_000, 5_000_000,
             2_750_000, 1_500_000
         ],
-        "Spend/Day": [
-            0, 19_512_711, 60_000, 133_333, 72_000,
-            50_000, 194_444, 166_667, 200_000, 227_273,
-            91_667, 107_143
-        ],
-        "Remaining Budget": [
-            1_307_008, 663_432_170, 3_800_000, 1_500_000, 2_200_000,
-            2_000_000, 3_500_000, 4_000_000, 4_000_000, 4_000_000,
-            2_750_000, 3_000_000
-        ],
-        "Yesterday Spend": [
-            0, 7_355_271, 40_000, 150_000, 60_000,
-            55_000, 200_000, 180_000, 190_000, 210_000,
-            90_000, 95_000
-        ],
-        "Pacing": [
-            "0%", "38%", "24%", "57%", "45%",
-            "20%", "50%", "33%", "50%", "55%",
-            "33%", "21%"
-        ]
     })
 
-    # Sidebar Filters
-    st.sidebar.subheader("🔍 Filters for Pacing")
-    filter_cols = ["month", "campaign", "brand", "category", "objective", "platform"]
+    # Calculate total campaign days
+    pacing_data['Total Days'] = (pacing_data['End Date'] - pacing_data['Start Date']).dt.days + 1
 
-    filtered_pacing_df = pacing_data.copy()
+    # Calculate days passed
+    pacing_data['Days Passed'] = pacing_data['Total Days'] - pacing_data['Day Left']
 
-    for col in filter_cols:
-        options = sorted(filtered_pacing_df[col].dropna().unique())
-        selected = st.sidebar.multiselect(f"Filter by {col}:", options, default=options)
-        if selected:
-            filtered_pacing_df = filtered_pacing_df[filtered_pacing_df[col].isin(selected)]
+    # Avoid division by zero or negative days passed
+    pacing_data['Days Passed'] = pacing_data['Days Passed'].clip(lower=1)
 
-    # Format large numbers with commas
-    def format_currency(val):
-        return f"{val:,.0f}"
+    # Calculate expected spend up to today
+    pacing_data['Expected Spend'] = pacing_data['Plan Budget'] * (pacing_data['Days Passed'] / pacing_data['Total Days'])
 
-    display_pacing = filtered_pacing_df.copy()
-    for col in ["Plan Budget", "Current Spend", "Spend/Day", "Remaining Budget", "Yesterday Spend"]:
-        display_pacing[col] = display_pacing[col].apply(format_currency)
+    # Calculate pacing as percentage
+    pacing_data['Pacing'] = (pacing_data['Current Spend'] / pacing_data['Expected Spend']) * 100
 
-    st.dataframe(display_pacing.reset_index(drop=True), use_container_width=True)
+    # Clip pacing at 100%
+    pacing_data['Pacing'] = pacing_data['Pacing'].clip(upper=100)
+
+    # Format pacing as percentage string
+    pacing_data['Pacing'] = pacing_data['Pacing'].round(0).astype(int).astype(str) + '%'
+    pacing_data['Remaining Budget'] = (pacing_data['Plan Budget'] - pacing_data["Current Spend"]).round(0).astype(int)
+    pacing_data['Expected Spend'] = pacing_data['Expected Spend'].round(0).astype(int)
+    pacing_data['Expected Spend/day'] = (pacing_data['Remaining Budget']/ pacing_data['Day Left']).round(0).astype(int)
+
+    # Show full data (you can select any columns you want)
+    print(pacing_data[[
+        "month", "campaign", "brand", "category", "objective", "platform",
+        "Day Left", "Plan Budget", "Current Spend", "Pacing"
+    ]])
+
+    import streamlit as st
+    import pandas as pd
+
+    # Your existing DataFrame code here (pacing_data)...
+
+    st.write("If today is 28-08-2025, and data is available up to 27-08-2025")
+
+    # Then show the DataFrame or any other outputs
+    st.dataframe(pacing_data[[
+        "month", 'Start Date','End Date',"campaign", "brand", "category", "objective", "platform",
+        "Day Left", "Plan Budget","Remaining Budget", "Current Spend","Expected Spend",'Expected Spend/day', "Pacing"
+    ]])
