@@ -42,7 +42,7 @@ daily_df, weekly_df = load_mock_data()
 base_data=weekly_df.copy()
 
 # --- Sidebar Navigation ---
-st.sidebar.title("📊 Dashboard Options")
+st.sidebar.title("📊 Welcome to Campaign Analytics")
 view = st.sidebar.radio("Select a view:", ["Daily Campaign", "Weekly Update","Pacing Monitoring"])
 
 # --- DAILY CAMPAIGN VIEW ---
@@ -316,3 +316,4 @@ elif view == "Pacing Monitoring":
         "month", 'Start Date','End Date',"campaign", "brand", "category", "objective", "platform",
         "Day Left", "Plan Budget","Remaining Budget", "Current Spend","Expected Spend",'Expected Spend/day', "Pacing"
     ]])
+
